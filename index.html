@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Academic Advisor KPI Performance Management System</title>
+<style>
+  :root{
+    --navy-dark:#173A6A;
+    --navy-deep:#0E2B59;
+    --navy-accent:#1B4B7A;
+    --bg:#F5F7FA;
+    --card-border:#E7EAEE;
+    --text-primary:#1F2937;
+    --text-secondary:#6B7280;
+    --red:#B4534A; --red-bg:#F7DEDB;
+    --green:#3FA46A; --green-bg:#DCF3E3;
+    --gold:#C0841A; --gold-bg:#FDF3E0;
+    --donut:#E8A12F; --track:#D8DCE1;
+    --ext-green:#48A162; --ext-red:#CA4D4D;
+    --line-blue:#1849BA; --area-fill:#CED8F0;
+    --shadow: 0 2px 6px rgba(20,30,50,0.10);
+    --shadow-hover: 0 10px 28px rgba(20,30,50,0.16);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:var(--text-primary);}
+  .dashboard{max-width:1800px;margin:0 auto;padding:20px clamp(16px,3vw,40px) 40px;}
+
+  /* header */
+  .header{background:var(--navy-dark);border-radius:10px;padding:clamp(20px,3vw,32px) clamp(22px,3.5vw,40px);color:#fff;margin-bottom:18px;}
+  .eyebrow{font-size:12px;letter-spacing:2px;color:#9FC1EA;font-weight:600;text-transform:uppercase;padding-left:1px;}
+  .header h1{font-size:clamp(22px,2.6vw,30px);margin:10px 0 8px;font-weight:700;}
+  .header .subtitle{color:#C7D6EA;font-size:clamp(12.5px,1.1vw,14px);}
+
+  /* filters */
+  .filters{background:#fff;border:1px solid var(--card-border);border-radius:10px;padding:18px 22px;display:flex;flex-wrap:wrap;gap:18px;margin-bottom:18px;box-shadow:var(--shadow);}
+  .filter{display:flex;flex-direction:column;gap:6px;flex:1 1 170px;min-width:150px;}
+  .filter label{font-size:10.5px;color:var(--text-secondary);font-weight:600;}
+  .filter .control{border:1px solid #DADEE3;border-radius:4px;height:34px;display:flex;align-items:center;padding:0 10px;font-size:12.5px;color:var(--text-primary);background:#fff;}
+
+  /* kpi row */
+  .kpi-row{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:18px;}
+  .kpi-row .kpi-card{flex:1 1 180px;}
+  .kpi-card{background:#fff;border-radius:0 0 10px 10px;position:relative;padding:20px 20px 18px;box-shadow:var(--shadow);}
+  .kpi-card::before{content:"";position:absolute;top:-1px;left:8px;right:8px;height:5px;background:var(--navy-accent);border-radius:6px 6px 0 0;}
+  .kpi-label{font-size:12px;color:var(--text-secondary);}
+  .kpi-value{font-size:clamp(24px,2.3vw,34px);font-weight:700;color:var(--navy-deep);margin-top:8px;}
+
+  /* performer row */
+  .performer-row{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:18px;}
+  .performer-row .performer-card{flex:1 1 420px;}
+  .performer-card{background:#fff;border:1px solid var(--card-border);border-radius:10px;padding:clamp(18px,2vw,26px) clamp(20px,2.5vw,28px);box-shadow:var(--shadow);}
+  .performer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .performer-tag{font-size:16px;font-weight:700;display:flex;align-items:center;gap:7px;}
+  .rank-pill{border-radius:14px;padding:6px 14px;font-size:12px;font-weight:700;}
+  .performer-body{display:flex;align-items:center;gap:16px;position:relative;flex-wrap:wrap;}
+  .avatar{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;flex:0 0 auto;}
+  .performer-name{font-size:19px;font-weight:700;}
+  .performer-sub{font-size:12.5px;color:var(--text-secondary);margin-top:3px;}
+  .score-pill{margin-left:auto;border-radius:20px;padding:10px 22px;font-size:17px;font-weight:700;text-align:center;}
+  .metric-cards{display:flex;gap:14px;margin-top:16px;}
+  .metric-box{background:var(--bg);border-radius:8px;text-align:center;padding:14px 20px;flex:1;}
+  .metric-box .num{font-size:21px;font-weight:700;color:var(--navy-deep);}
+  .metric-box .lbl{font-size:11px;color:var(--text-secondary);margin-top:2px;}
+
+  .section-title{font-size:17px;font-weight:700;color:var(--text-primary);margin:6px 0 12px;}
+
+  /* zoomable panel base */
+  .zoomable{position:relative;cursor:zoom-in;transition:transform .2s ease, box-shadow .2s ease;}
+  .zoomable:hover:not(.zoomed){transform:translateY(-3px);box-shadow:var(--shadow-hover);}
+  .zoom-hint{position:absolute;top:12px;right:14px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--card-border);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text-secondary);opacity:0;transition:opacity .2s;pointer-events:none;}
+  .zoomable:hover .zoom-hint{opacity:1;}
+  .zoomable.zoomed{cursor:default;overflow:auto;}
+
+  /* trend panel */
+  .trend-panel{background:#fff;border:1px solid var(--card-border);border-radius:10px;padding:20px 22px 8px;margin-bottom:18px;box-shadow:var(--shadow);}
+  .trend-panel svg{width:100%;height:auto;display:block;}
+
+  /* breakdown row */
+  .breakdown-row{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:18px;align-items:flex-start;}
+  .breakdown-row > div{flex:1 1 460px;min-width:0;}
+  .panel{background:#fff;border:1px solid var(--card-border);border-radius:10px;padding:22px;box-shadow:var(--shadow);}
+  .donut-grid{display:flex;flex-wrap:wrap;gap:22px 18px;}
+  .donut-item{flex:1 1 44%;min-width:220px;}
+  .donut-item{display:flex;gap:12px;align-items:flex-start;}
+  .donut-item svg{flex:0 0 auto;}
+  .donut-title{font-size:12.5px;font-weight:600;color:var(--text-primary);}
+  .donut-meta{font-size:10.5px;color:var(--text-secondary);margin-top:4px;line-height:1.5;}
+
+  .ext-legend{display:flex;gap:18px;font-size:11.5px;color:var(--text-primary);margin-bottom:14px;}
+  .ext-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .ext-legend i{width:11px;height:11px;border-radius:2px;display:inline-block;}
+  .ext-row{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center;margin-bottom:14px;}
+  .ext-name{font-size:12px;color:var(--text-primary);}
+  .ext-bar{display:flex;height:30px;border-radius:5px;overflow:hidden;background:#EDEDED;}
+  .ext-bar .seg{display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
+  .ext-bar .on{background:var(--ext-green);}
+  .ext-bar .over{background:var(--ext-red);}
+
+  /* badge */
+  .section-title-row{display:flex;align-items:baseline;flex-wrap:wrap;margin:6px 0 12px;width:100%;overflow:hidden;padding-right:16px;}
+  .section-title-row .section-title{margin:0;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;}
+  .top-lead-inline{font-size:13px;font-weight:700;color:#1F6B41;white-space:nowrap;margin-left:auto;padding-left:12px;flex:0 0 auto;}
+  .top-lead-inline .star{color:#D9A400;margin-right:4px;}
+  .advisor-view-btn{margin-left:auto;flex:0 0 auto;background:#fff;border:1px solid #DADEE3;border-radius:5px;padding:8px 18px;font-size:12.5px;font-weight:700;color:var(--navy-deep);cursor:not-allowed;opacity:.85;}
+  .advisor-view-btn:hover{background:#F5F7FA;}
+
+  /* comparison row */
+  .comparison-row{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:18px;align-items:stretch;}
+  .comparison-row > div{flex:1 1 460px;min-width:0;display:flex;flex-direction:column;}
+  .comparison-row .panel{flex:1;display:flex;flex-direction:column;justify-content:center;}
+  .comparison-row svg{width:100%;height:auto;display:block;}
+  table.corr{width:100%;border-collapse:collapse;}
+  table.corr th{padding:8px 6px;font-size:11.5px;color:var(--text-secondary);text-align:center;}
+  table.corr th:first-child{text-align:left;color:var(--text-secondary);}
+  table.corr td{padding:8px 6px;text-align:center;}
+  table.corr td:first-child{text-align:left;font-size:13px;font-weight:700;color:var(--text-primary);}
+  .corr-dot{width:44px;height:44px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;}
+
+  /* leaderboard */
+  .leaderboard-panel{background:#fff;border:1px solid var(--card-border);border-radius:10px;padding:4px;margin-bottom:16px;box-shadow:var(--shadow);overflow-x:auto;}
+  table.leader{width:100%;border-collapse:collapse;min-width:920px;}
+  table.leader thead th{background:var(--bg);border-bottom:2px solid var(--card-border);padding:10px 14px;font-size:11px;color:var(--text-secondary);text-align:left;position:sticky;top:0;}
+  table.leader td{padding:9px 14px;font-size:12.5px;border-bottom:1px solid #F2F3F5;color:var(--text-primary);}
+  .score-bar-track{width:100px;height:7px;background:#EDEDED;border-radius:4px;}
+  .score-bar-fill{height:7px;border-radius:4px;}
+
+  footer.notice{text-align:center;font-size:11px;color:#9AA0A6;padding:10px 0 6px;}
+
+  /* zoom overlay */
+  .zoom-backdrop{position:fixed;inset:0;background:rgba(15,23,42,0);transition:background .35s ease;z-index:999;}
+  .zoom-backdrop.show{background:rgba(15,23,42,.55);}
+  .zoom-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:#fff;border:1px solid var(--card-border);cursor:pointer;font-size:14px;color:var(--text-primary);box-shadow:0 2px 8px rgba(0,0,0,.15);z-index:2;}
+
+  /* KPI name / label redaction */
+  .kpi-blur{filter:blur(5px);-webkit-filter:blur(5px);user-select:none;-webkit-user-select:none;}
+</style>
+</head>
+<body>
+<div class="dashboard">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="eyebrow">EdTech &middot; Advising Operations</div>
+    <h1>Academic Advisor KPI Performance Management System</h1>
+    <div class="subtitle">Composite performance analytics across attendance, discipline, academics, career readiness &amp; risk</div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters">
+    <div class="filter"><label>TEAM LEAD</label><div class="control">All Team Leads &#9662;</div></div>
+    <div class="filter"><label>ADVISOR</label><div class="control">All Advisors &#9662;</div></div>
+    <div class="filter"><label>BATCH</label><div class="control">All Batches &#9662;</div></div>
+    <div class="filter"><label>DATE</label><div class="control">Jan 1, 2026 &ndash; Dec 31, 2026 &#9662;</div></div>
+    <div class="filter"><label>WORK MODE</label><div class="control">All Modes &#9662;</div></div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-row">
+    <div class="kpi-card"><div class="kpi-label kpi-blur">Total Advisors</div><div class="kpi-value">24</div></div>
+    <div class="kpi-card"><div class="kpi-label kpi-blur">Total Interns</div><div class="kpi-value">186</div></div>
+    <div class="kpi-card"><div class="kpi-label kpi-blur">Total Evaluations</div><div class="kpi-value">1,042</div></div>
+    <div class="kpi-card"><div class="kpi-label kpi-blur">At-Risk Evaluations</div><div class="kpi-value" style="color:var(--red);">37</div></div>
+    <div class="kpi-card"><div class="kpi-label kpi-blur">Overall Score</div><div class="kpi-value" style="color:var(--gold);">87%</div></div>
+  </div>
+
+  <!-- TOP / BOTTOM PERFORMER -->
+  <div class="performer-row">
+    <div class="performer-card">
+      <div class="performer-head">
+        <div class="performer-tag" style="color:var(--green);">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#3FA46A" d="M17 4h3a1 1 0 0 1 1 1v2a4 4 0 0 1-4 4h-.35A6.02 6.02 0 0 1 13 14.9V17h2a2 2 0 0 1 2 2v1H7v-1a2 2 0 0 1 2-2h2v-2.1A6.02 6.02 0 0 1 7.35 11H7a4 4 0 0 1-4-4V5a1 1 0 0 1 1-1h3V3a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1zM7 6H5v1a2 2 0 0 0 2 2V6zm10 0v3a2 2 0 0 0 2-2V6h-2z"/></svg>
+          Top Performer
+        </div>
+        <div class="rank-pill" style="background:var(--green-bg);color:#1F6B41;">Rank #1</div>
+      </div>
+      <div class="performer-body">
+        <div class="avatar" style="background:#EAF1FB;color:var(--navy-dark);">MC</div>
+        <div>
+          <div class="performer-name">Michael Chen</div>
+          <div class="performer-sub">Team Lead: Sarah Johnson</div>
+        </div>
+        <div class="score-pill" style="background:var(--green-bg);color:#1F6B41;">96.8%</div>
+      </div>
+      <div class="metric-cards">
+        <div class="metric-box"><div class="num">14</div><div class="lbl">Interns</div></div>
+        <div class="metric-box"><div class="num">62</div><div class="lbl">Evaluations</div></div>
+      </div>
+    </div>
+
+    <div class="performer-card">
+      <div class="performer-head">
+        <div class="performer-tag" style="color:var(--red);">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#B4534A" d="M12 2 1 21h22L12 2zm0 5.5 6.9 11.5H5.1L12 7.5zM11 10v4h2v-4h-2zm0 5v2h2v-2h-2z"/></svg>
+          Need Attention
+        </div>
+        <div class="rank-pill" style="background:var(--red-bg);color:#8A342B;">Rank #24</div>
+      </div>
+      <div class="performer-body">
+        <div class="avatar" style="background:#FBECEA;color:var(--red);">DT</div>
+        <div>
+          <div class="performer-name">David Torres</div>
+          <div class="performer-sub">Team Lead: Amanda Lee</div>
+        </div>
+        <div class="score-pill" style="background:var(--red-bg);color:#8A342B;">61.2%</div>
+      </div>
+      <div class="metric-cards">
+        <div class="metric-box"><div class="num">9</div><div class="lbl">Interns</div></div>
+        <div class="metric-box"><div class="num">21</div><div class="lbl">Evaluations</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TREND -->
+  <div class="section-title"><span class="kpi-blur">Overall Performance Trend</span></div>
+  <div class="trend-panel zoomable" data-title="Overall Performance Trend">
+    <div class="zoom-hint">&#10530;</div>
+    <svg viewBox="0 0 1200 340" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#CED8F0" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#CED8F0" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+  <g stroke="#EDEDED" stroke-width="1" stroke-dasharray="2,2">
+    <line x1="60" y1="30" x2="1170" y2="30"/>
+    <line x1="60" y1="90" x2="1170" y2="90"/>
+    <line x1="60" y1="150" x2="1170" y2="150"/>
+    <line x1="60" y1="210" x2="1170" y2="210"/>
+    <line x1="60" y1="270" x2="1170" y2="270"/>
+  </g>
+  <line x1="60" y1="150" x2="1170" y2="150" stroke="#5C7A5A" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="20" y="34" font-size="11" fill="#6B7280">100%</text>
+  <text x="28" y="94" font-size="11" fill="#6B7280">90%</text>
+  <text x="28" y="154" font-size="11" fill="#6B7280">80%</text>
+  <text x="28" y="214" font-size="11" fill="#6B7280">70%</text>
+  <text x="28" y="274" font-size="11" fill="#6B7280">60%</text>
+  <path d="M60,165 L161,158 L262,140 L363,148 L464,120 L565,110 L666,130 L767,100 L868,85 L969,90 L1070,70 L1170,78 L1170,270 L60,270 Z" fill="url(#areaGrad)"/>
+  <polyline points="60,165 161,158 262,140 363,148 464,120 565,110 666,130 767,100 868,85 969,90 1070,70 1170,78" fill="none" stroke="#1849BA" stroke-width="3"/>
+  <g fill="#1849BA">
+    <circle cx="60" cy="165" r="3.5"/><circle cx="161" cy="158" r="3.5"/><circle cx="262" cy="140" r="3.5"/>
+    <circle cx="363" cy="148" r="3.5"/><circle cx="464" cy="120" r="3.5"/><circle cx="565" cy="110" r="3.5"/>
+    <circle cx="666" cy="130" r="3.5"/><circle cx="767" cy="100" r="3.5"/><circle cx="868" cy="85" r="3.5"/>
+    <circle cx="969" cy="90" r="3.5"/><circle cx="1070" cy="70" r="3.5"/><circle cx="1170" cy="78" r="3.5"/>
+  </g>
+  <g font-size="11" fill="#6B7280" text-anchor="middle">
+    <text x="60" y="295">Jan</text><text x="161" y="295">Feb</text><text x="262" y="295">Mar</text>
+    <text x="363" y="295">Apr</text><text x="464" y="295">May</text><text x="565" y="295">Jun</text>
+    <text x="666" y="295">Jul</text><text x="767" y="295">Aug</text><text x="868" y="295">Sep</text>
+    <text x="969" y="295">Oct</text><text x="1070" y="295">Nov</text><text x="1170" y="295">Dec</text>
+  </g>
+</svg>
+  </div>
+
+  <!-- BREAKDOWN + EXTENSION -->
+  <div class="breakdown-row">
+    <div>
+      <div class="section-title"><span class="kpi-blur">KPI Breakdown</span></div>
+      <div class="panel zoomable" data-title="KPI Breakdown">
+        <div class="zoom-hint">&#10530;</div>
+        <div class="donut-grid">
+          <div class="donut-item">
+      <svg width="84" height="84" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#D8DCE1" stroke-width="12"/>
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#E8A12F" stroke-width="12"
+          stroke-dasharray="219.7 19.1" stroke-dashoffset="0" transform="rotate(-90 50 50)"/>
+        <text x="50" y="57" font-size="19" font-weight="700" text-anchor="middle" fill="#1B2B3A">92%</text>
+      </svg>
+      <div>
+        <div class="donut-title kpi-blur">Attendance Monitoring Effectiveness</div>
+        <div class="donut-meta">Target: 95%<br>Weight: 20%</div>
+      </div>
+    </div>
+<div class="donut-item">
+      <svg width="84" height="84" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#D8DCE1" stroke-width="12"/>
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#E8A12F" stroke-width="12"
+          stroke-dasharray="224.4 14.3" stroke-dashoffset="0" transform="rotate(-90 50 50)"/>
+        <text x="50" y="57" font-size="19" font-weight="700" text-anchor="middle" fill="#1B2B3A">94%</text>
+      </svg>
+      <div>
+        <div class="donut-title kpi-blur">Operational Compliance Score</div>
+        <div class="donut-meta">Target: 90%<br>Weight: 10%</div>
+      </div>
+    </div>
+<div class="donut-item">
+      <svg width="84" height="84" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#D8DCE1" stroke-width="12"/>
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#E8A12F" stroke-width="12"
+          stroke-dasharray="210.1 28.7" stroke-dashoffset="0" transform="rotate(-90 50 50)"/>
+        <text x="50" y="57" font-size="19" font-weight="700" text-anchor="middle" fill="#1B2B3A">88%</text>
+      </svg>
+      <div>
+        <div class="donut-title kpi-blur">Discipline Handling Effectiveness</div>
+        <div class="donut-meta">Target: 90%<br>Weight: 15%</div>
+      </div>
+    </div>
+<div class="donut-item">
+      <svg width="84" height="84" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#D8DCE1" stroke-width="12"/>
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#E8A12F" stroke-width="12"
+          stroke-dasharray="202.9 35.8" stroke-dashoffset="0" transform="rotate(-90 50 50)"/>
+        <text x="50" y="57" font-size="19" font-weight="700" text-anchor="middle" fill="#1B2B3A">85%</text>
+      </svg>
+      <div>
+        <div class="donut-title kpi-blur">Soft Skill Participation Score</div>
+        <div class="donut-meta">Target: 90%<br>Weight: 10%</div>
+      </div>
+    </div>
+<div class="donut-item">
+      <svg width="84" height="84" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#D8DCE1" stroke-width="12"/>
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#E8A12F" stroke-width="12"
+          stroke-dasharray="193.4 45.4" stroke-dashoffset="0" transform="rotate(-90 50 50)"/>
+        <text x="50" y="57" font-size="19" font-weight="700" text-anchor="middle" fill="#1B2B3A">81%</text>
+      </svg>
+      <div>
+        <div class="donut-title kpi-blur">Academic Performance Index</div>
+        <div class="donut-meta">Target: 85%<br>Weight: 25%</div>
+      </div>
+    </div>
+<div class="donut-item">
+      <svg width="84" height="84" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#D8DCE1" stroke-width="12"/>
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#E8A12F" stroke-width="12"
+          stroke-dasharray="19.1 219.7" stroke-dashoffset="0" transform="rotate(-90 50 50)"/>
+        <text x="50" y="57" font-size="19" font-weight="700" text-anchor="middle" fill="#1B2B3A">8%</text>
+      </svg>
+      <div>
+        <div class="donut-title kpi-blur">Risk Management Score</div>
+        <div class="donut-meta">Target: ≤10%<br>Weight: 5%</div>
+      </div>
+    </div>
+<div class="donut-item">
+      <svg width="84" height="84" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#D8DCE1" stroke-width="12"/>
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#E8A12F" stroke-width="12"
+          stroke-dasharray="181.5 57.3" stroke-dashoffset="0" transform="rotate(-90 50 50)"/>
+        <text x="50" y="57" font-size="19" font-weight="700" text-anchor="middle" fill="#1B2B3A">76%</text>
+      </svg>
+      <div>
+        <div class="donut-title kpi-blur">Career Readiness Score</div>
+        <div class="donut-meta">Target: 80%<br>Weight: 15%</div>
+      </div>
+    </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="section-title"><span class="kpi-blur">Extension Analysis</span></div>
+      <div class="panel zoomable" data-title="Extension Analysis">
+        <div class="zoom-hint">&#10530;</div>
+        <div class="ext-legend">
+          <span><i style="background:var(--ext-green);"></i><span class="kpi-blur">On-Time Evaluations</span></span>
+          <span><i style="background:var(--ext-red);"></i><span class="kpi-blur">Extended Evaluations</span></span>
+        </div>
+        <div class="ext-row">
+      <div class="ext-name">Michael Chen</div>
+      <div class="ext-bar"><div class="seg on" style="width:90%;">90%</div><div class="seg over" style="width:10%;">10%</div></div>
+    </div>
+<div class="ext-row">
+      <div class="ext-name">Aisha Patel</div>
+      <div class="ext-bar"><div class="seg on" style="width:57%;">57%</div><div class="seg over" style="width:43%;">43%</div></div>
+    </div>
+<div class="ext-row">
+      <div class="ext-name">Daniel Kim</div>
+      <div class="ext-bar"><div class="seg on" style="width:51%;">51%</div><div class="seg over" style="width:49%;">49%</div></div>
+    </div>
+<div class="ext-row">
+      <div class="ext-name">Sofia Garcia</div>
+      <div class="ext-bar"><div class="seg on" style="width:97%;">97%</div><div class="seg over" style="width:3%;">3%</div></div>
+    </div>
+<div class="ext-row">
+      <div class="ext-name">Liam O'Brien</div>
+      <div class="ext-bar"><div class="seg on" style="width:67%;">67%</div><div class="seg over" style="width:33%;">33%</div></div>
+    </div>
+<div class="ext-row">
+      <div class="ext-name">Grace Nwosu</div>
+      <div class="ext-bar"><div class="seg on" style="width:65%;">65%</div><div class="seg over" style="width:35%;">35%</div></div>
+    </div>
+<div class="ext-row">
+      <div class="ext-name">Ravi Shankar</div>
+      <div class="ext-bar"><div class="seg on" style="width:64%;">64%</div><div class="seg over" style="width:36%;">36%</div></div>
+    </div>
+<div class="ext-row">
+      <div class="ext-name">Emma Wilson</div>
+      <div class="ext-bar"><div class="seg on" style="width:58%;">58%</div><div class="seg over" style="width:42%;">42%</div></div>
+    </div>
+<div class="ext-row">
+      <div class="ext-name">Carlos Mendes</div>
+      <div class="ext-bar"><div class="seg on" style="width:97%;">97%</div><div class="seg over" style="width:3%;">3%</div></div>
+    </div>
+<div class="ext-row">
+      <div class="ext-name">David Torres</div>
+      <div class="ext-bar"><div class="seg on" style="width:56%;">56%</div><div class="seg over" style="width:44%;">44%</div></div>
+    </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEAM LEAD COMPARISON + KPI RELATIONSHIP -->
+  <div class="comparison-row">
+    <div>
+      <div class="section-title-row">
+        <div class="section-title" style="margin:0;">Team Lead Comparison</div>
+        <div class="top-lead-inline"><span class="star">&#9733;</span>Sarah Johnson : 91.4%</div>
+      </div>
+      <div class="panel zoomable" data-title="Team Lead Comparison">
+        <div class="zoom-hint">&#10530;</div>
+        <svg viewBox="0 0 645 370" preserveAspectRatio="xMidYMid meet">
+  <g stroke="#EEEEEE"><line x1="50" y1="40" x2="620" y2="40"/><line x1="50" y1="115" x2="620" y2="115"/>
+  <line x1="50" y1="190" x2="620" y2="190"/><line x1="50" y1="265" x2="620" y2="265"/><line x1="50" y1="330" x2="620" y2="330"/></g>
+  <rect x="70" y="66.1" width="70" height="263.9" fill="#1B4B7A"/><text x="105.0" y="58.1" font-size="13" fill="#1F2937" font-weight="700" text-anchor="middle">91%</text><rect x="175" y="80.6" width="70" height="249.4" fill="#1B4B7A"/><text x="210.0" y="72.6" font-size="13" fill="#1F2937" font-weight="700" text-anchor="middle">86%</text><rect x="280" y="89.3" width="70" height="240.7" fill="#1B4B7A"/><text x="315.0" y="81.3" font-size="13" fill="#1F2937" font-weight="700" text-anchor="middle">83%</text><rect x="385" y="100.9" width="70" height="229.1" fill="#1B4B7A"/><text x="420.0" y="92.9" font-size="13" fill="#1F2937" font-weight="700" text-anchor="middle">79%</text><rect x="490" y="115.4" width="70" height="214.6" fill="#1B4B7A"/><text x="525.0" y="107.4" font-size="13" fill="#1F2937" font-weight="700" text-anchor="middle">74%</text><rect x="595" y="132.8" width="70" height="197.2" fill="#1B4B7A"/><text x="630.0" y="124.8" font-size="13" fill="#1F2937" font-weight="700" text-anchor="middle">68%</text>
+  <text x="105.0" y="345" font-size="11.5" fill="#6B7280" text-anchor="middle">Sarah J.</text><text x="210.0" y="345" font-size="11.5" fill="#6B7280" text-anchor="middle">Amanda L.</text><text x="315.0" y="345" font-size="11.5" fill="#6B7280" text-anchor="middle">Marcus T.</text><text x="420.0" y="345" font-size="11.5" fill="#6B7280" text-anchor="middle">Priya R.</text><text x="525.0" y="345" font-size="11.5" fill="#6B7280" text-anchor="middle">James W.</text><text x="630.0" y="345" font-size="11.5" fill="#6B7280" text-anchor="middle">Elena V.</text>
+</svg>
+      </div>
+    </div>
+    <div>
+      <div class="section-title"><span class="kpi-blur">KPI Relationship Overview</span></div>
+      <div class="panel zoomable" data-title="KPI Relationship Overview">
+        <div class="zoom-hint">&#10530;</div>
+        <table class='corr'><tr><th class="kpi-blur">KPI</th><th class="kpi-blur">Academic Score</th><th class="kpi-blur">Attendance Score</th><th class="kpi-blur">Discipline Score</th></tr><tr><td class="kpi-blur">Discipline Score</td><td><div class="corr-dot" style="background:rgb(130,199,161);color:#0E3B22;">0.48</div></td><td><div class="corr-dot" style="background:rgb(64,152,105);color:#ffffff;">0.89</div></td><td><div class="corr-dot" style="background:rgb(47,140,90);color:#ffffff;">1.00</div></td></tr><tr><td class="kpi-blur">Attendance Score</td><td><div class="corr-dot" style="background:rgb(114,188,147);color:#0E3B22;">0.58</div></td><td><div class="corr-dot" style="background:rgb(47,140,90);color:#ffffff;">1.00</div></td><td><div class="corr-dot" style="background:rgb(64,152,105);color:#ffffff;">0.89</div></td></tr><tr><td class="kpi-blur">Academic Score</td><td><div class="corr-dot" style="background:rgb(47,140,90);color:#ffffff;">1.00</div></td><td><div class="corr-dot" style="background:rgb(114,188,147);color:#0E3B22;">0.58</div></td><td><div class="corr-dot" style="background:rgb(130,199,161);color:#0E3B22;">0.48</div></td></tr></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD -->
+  <div class="section-title-row">
+    <div class="section-title kpi-blur">Advisor Leader Board</div>
+    <button class="advisor-view-btn" type="button" title="Drill-through to per-advisor detail view (not included in this main-page demo)">Advisor View</button>
+  </div>
+  <div class="leaderboard-panel zoomable" data-title="Advisor Leader Board">
+    <div class="zoom-hint">&#10530;</div>
+    <table class='leader'><thead><tr>
+  <th>#Rank</th><th>Advisor</th><th>TeamLead</th><th class="kpi-blur">Overall Performance</th>
+  <th class="kpi-blur">Overall Score Bar</th><th class="kpi-blur">Attendance</th><th class="kpi-blur">API</th><th class="kpi-blur">At-Risk Intern %</th><th class="kpi-blur">Strongest KPI</th><th class="kpi-blur">Weakest KPI</th>
+</tr></thead><tbody><tr>
+      <td style="font-weight:700;">1</td>
+      <td>Olivia Anderson</td>
+      <td style="color:#6B7280;">James Walker</td>
+      <td style="font-weight:700;">98%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:98%;background:#48A162;"></div></div></td>
+      <td>100%</td>
+      <td>96%</td>
+      <td style="font-weight:700;color:#1F2937;">5%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Academic Perf.</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Risk Mgmt</td>
+    </tr><tr>
+      <td style="font-weight:700;">2</td>
+      <td>Hassan Demir</td>
+      <td style="color:#6B7280;">Elena Vasquez</td>
+      <td style="font-weight:700;">96%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:96%;background:#48A162;"></div></div></td>
+      <td>91%</td>
+      <td>94%</td>
+      <td style="font-weight:700;color:#1F2937;">1%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Compliance</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Soft Skills</td>
+    </tr><tr>
+      <td style="font-weight:700;">3</td>
+      <td>Aisha Lindqvist</td>
+      <td style="color:#6B7280;">Sarah Johnson</td>
+      <td style="font-weight:700;">94%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:94%;background:#48A162;"></div></div></td>
+      <td>100%</td>
+      <td>96%</td>
+      <td style="font-weight:700;color:#1F2937;">6%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Academic Perf.</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Compliance</td>
+    </tr><tr>
+      <td style="font-weight:700;">4</td>
+      <td>Ines Kim</td>
+      <td style="color:#6B7280;">Priya Rao</td>
+      <td style="font-weight:700;">93%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:93%;background:#48A162;"></div></div></td>
+      <td>88%</td>
+      <td>87%</td>
+      <td style="font-weight:700;color:#1F2937;">1%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Career Readiness</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Discipline</td>
+    </tr><tr>
+      <td style="font-weight:700;">5</td>
+      <td>Priya Shankar</td>
+      <td style="color:#6B7280;">Marcus Thompson</td>
+      <td style="font-weight:700;">90%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:90%;background:#48A162;"></div></div></td>
+      <td>94%</td>
+      <td>89%</td>
+      <td style="font-weight:700;color:#1F2937;">8%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Career Readiness</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Soft Skills</td>
+    </tr><tr>
+      <td style="font-weight:700;">6</td>
+      <td>Wei Anderson</td>
+      <td style="color:#6B7280;">Marcus Thompson</td>
+      <td style="font-weight:700;">87%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:87%;background:#F0A431;"></div></div></td>
+      <td>94%</td>
+      <td>90%</td>
+      <td style="font-weight:700;color:#1F2937;">7%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Academic Perf.</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Compliance</td>
+    </tr><tr>
+      <td style="font-weight:700;">7</td>
+      <td>Michael Kim</td>
+      <td style="color:#6B7280;">Elena Vasquez</td>
+      <td style="font-weight:700;">86%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:86%;background:#F0A431;"></div></div></td>
+      <td>80%</td>
+      <td>78%</td>
+      <td style="font-weight:700;color:#1F2937;">8%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Attendance</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Risk Mgmt</td>
+    </tr><tr>
+      <td style="font-weight:700;">8</td>
+      <td>Michael Shankar</td>
+      <td style="color:#6B7280;">Sarah Johnson</td>
+      <td style="font-weight:700;">84%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:84%;background:#F0A431;"></div></div></td>
+      <td>92%</td>
+      <td>82%</td>
+      <td style="font-weight:700;color:#1F2937;">14%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Career Readiness</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Risk Mgmt</td>
+    </tr><tr>
+      <td style="font-weight:700;">9</td>
+      <td>Priya Demir</td>
+      <td style="color:#6B7280;">Sarah Johnson</td>
+      <td style="font-weight:700;">82%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:82%;background:#F0A431;"></div></div></td>
+      <td>86%</td>
+      <td>78%</td>
+      <td style="font-weight:700;color:#1F2937;">10%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Attendance</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Career Readiness</td>
+    </tr><tr>
+      <td style="font-weight:700;">10</td>
+      <td>Liam Wilson</td>
+      <td style="color:#6B7280;">Amanda Lee</td>
+      <td style="font-weight:700;">79%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:79%;background:#F0A431;"></div></div></td>
+      <td>71%</td>
+      <td>77%</td>
+      <td style="font-weight:700;color:#1F2937;">13%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Soft Skills</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Compliance</td>
+    </tr><tr>
+      <td style="font-weight:700;">11</td>
+      <td>Olivia Silva</td>
+      <td style="color:#6B7280;">Priya Rao</td>
+      <td style="font-weight:700;">78%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:78%;background:#F0A431;"></div></div></td>
+      <td>83%</td>
+      <td>70%</td>
+      <td style="font-weight:700;color:#1F2937;">15%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Attendance</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Career Readiness</td>
+    </tr><tr>
+      <td style="font-weight:700;">12</td>
+      <td>Ravi Chen</td>
+      <td style="color:#6B7280;">Amanda Lee</td>
+      <td style="font-weight:700;">76%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:76%;background:#F0A431;"></div></div></td>
+      <td>85%</td>
+      <td>80%</td>
+      <td style="font-weight:700;color:#1F2937;">14%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Attendance</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Academic Perf.</td>
+    </tr><tr>
+      <td style="font-weight:700;">13</td>
+      <td>Fatima Lindqvist</td>
+      <td style="color:#6B7280;">James Walker</td>
+      <td style="font-weight:700;">73%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:73%;background:#F0A431;"></div></div></td>
+      <td>67%</td>
+      <td>81%</td>
+      <td style="font-weight:700;color:#1F2937;">15%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Discipline</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Attendance</td>
+    </tr><tr>
+      <td style="font-weight:700;">14</td>
+      <td>Nina Torres</td>
+      <td style="color:#6B7280;">Marcus Thompson</td>
+      <td style="font-weight:700;">71%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:71%;background:#F0A431;"></div></div></td>
+      <td>64%</td>
+      <td>65%</td>
+      <td style="font-weight:700;color:#1F2937;">19%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Attendance</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Compliance</td>
+    </tr><tr>
+      <td style="font-weight:700;">15</td>
+      <td>Tomasz Lindqvist</td>
+      <td style="color:#6B7280;">Amanda Lee</td>
+      <td style="font-weight:700;">69%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:69%;background:#CA4D4D;"></div></div></td>
+      <td>78%</td>
+      <td>68%</td>
+      <td style="font-weight:700;color:#1F2937;">20%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Risk Mgmt</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Career Readiness</td>
+    </tr><tr>
+      <td style="font-weight:700;">16</td>
+      <td>Yusuf O'Brien</td>
+      <td style="color:#6B7280;">Elena Vasquez</td>
+      <td style="font-weight:700;">67%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:67%;background:#CA4D4D;"></div></div></td>
+      <td>63%</td>
+      <td>68%</td>
+      <td style="font-weight:700;color:#1F2937;">23%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Academic Perf.</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Soft Skills</td>
+    </tr><tr>
+      <td style="font-weight:700;">17</td>
+      <td>Noah Shankar</td>
+      <td style="color:#6B7280;">Sarah Johnson</td>
+      <td style="font-weight:700;">65%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:65%;background:#CA4D4D;"></div></div></td>
+      <td>64%</td>
+      <td>64%</td>
+      <td style="font-weight:700;color:#1F2937;">19%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Attendance</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Risk Mgmt</td>
+    </tr><tr>
+      <td style="font-weight:700;">18</td>
+      <td>Aisha Silva</td>
+      <td style="color:#6B7280;">Priya Rao</td>
+      <td style="font-weight:700;">62%</td>
+      <td><div class="score-bar-track"><div class="score-bar-fill" style="width:62%;background:#CA4D4D;"></div></div></td>
+      <td>58%</td>
+      <td>65%</td>
+      <td style="font-weight:700;color:#1F2937;">22%</td>
+      <td class="kpi-blur" style="color:#3FA46A;font-weight:600;font-size:12px;">Risk Mgmt</td>
+      <td class="kpi-blur" style="color:#B4534A;font-weight:600;font-size:12px;">Compliance</td>
+    </tr></tbody></table>
+  </div>
+
+  <footer class="notice">Public demonstration using dummy/sanitized data. Original business data is confidential.</footer>
+</div>
+
+<script>
+(function(){
+  let activeZoom = null;
+
+  function openZoom(el){
+    if(activeZoom) return;
+    const rect = el.getBoundingClientRect();
+    const placeholder = document.createElement('div');
+    placeholder.style.width = rect.width+'px';
+    placeholder.style.height = rect.height+'px';
+    placeholder.style.flex = 'none';
+    el.parentNode.insertBefore(placeholder, el);
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'zoom-backdrop';
+    document.body.appendChild(backdrop);
+    backdrop.addEventListener('click', closeZoom);
+    requestAnimationFrame(()=>backdrop.classList.add('show'));
+
+    document.body.appendChild(el);
+    el.classList.add('zoomed');
+    Object.assign(el.style,{
+      position:'fixed', margin:'0', top:rect.top+'px', left:rect.left+'px',
+      width:rect.width+'px', height:rect.height+'px', zIndex:1000, transition:'none'
+    });
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className='zoom-close';
+    closeBtn.innerHTML='&#10005;';
+    closeBtn.addEventListener('click', (e)=>{ e.stopPropagation(); closeZoom(); });
+    el.appendChild(closeBtn);
+
+    void el.offsetWidth;
+
+    const maxW = Math.min(window.innerWidth*0.9, 1200);
+    const maxH = window.innerHeight*0.85;
+    const scale = Math.min(maxW/rect.width, maxH/rect.height, 1.6);
+    const targetW = rect.width*scale;
+    const targetH = rect.height*scale;
+    const targetLeft = (window.innerWidth-targetW)/2;
+    const targetTop = (window.innerHeight-targetH)/2;
+
+    el.style.transition = 'top .35s cubic-bezier(.4,0,.2,1), left .35s cubic-bezier(.4,0,.2,1), width .35s cubic-bezier(.4,0,.2,1), height .35s cubic-bezier(.4,0,.2,1), box-shadow .35s';
+    requestAnimationFrame(()=>{
+      el.style.top = targetTop+'px';
+      el.style.left = targetLeft+'px';
+      el.style.width = targetW+'px';
+      el.style.height = targetH+'px';
+      el.style.boxShadow = '0 24px 70px rgba(0,0,0,.35)';
+    });
+
+    activeZoom = {el, placeholder, backdrop, rect};
+  }
+
+  function closeZoom(){
+    if(!activeZoom) return;
+    const {el, placeholder, backdrop, rect} = activeZoom;
+    el.style.top = rect.top+'px';
+    el.style.left = rect.left+'px';
+    el.style.width = rect.width+'px';
+    el.style.height = rect.height+'px';
+    el.style.boxShadow = 'none';
+    backdrop.classList.remove('show');
+    const btn = el.querySelector('.zoom-close');
+    if(btn) btn.remove();
+    setTimeout(()=>{
+      el.classList.remove('zoomed');
+      el.style.position=''; el.style.margin=''; el.style.top=''; el.style.left='';
+      el.style.width=''; el.style.height=''; el.style.zIndex=''; el.style.transition=''; el.style.boxShadow='';
+      placeholder.parentNode.insertBefore(el, placeholder);
+      placeholder.remove();
+      backdrop.remove();
+      activeZoom = null;
+    }, 360);
+  }
+
+  document.querySelectorAll('.zoomable').forEach(el=>{
+    el.addEventListener('click', ()=>{ if(!el.classList.contains('zoomed')) openZoom(el); });
+  });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeZoom(); });
+})();
+</script>
+</body>
+</html>
